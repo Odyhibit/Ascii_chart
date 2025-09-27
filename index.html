@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASCII 0–127 • Decimal / Hex</title>
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #151a21;
+      --ink: #e7edf3;
+      --muted: #9fb0c3;
+      --accent: #58a6ff;
+      --grid-gap: 24px;
+      --font-size: 22px; /* Large enough for screen share */
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: clamp(18px, 2.4vw, 24px);
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: 0.3px;
+      color: var(--ink);
+    }
+    .controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+    label {
+      color: var(--muted);
+      letter-spacing: .2px;
+      font-size: 14px;
+    }
+    select {
+      appearance: none;
+      background: #0f141b;
+      color: var(--ink);
+      border: 1px solid #2a3441;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* The main grid is 4 columns, each column contains 32 rows. */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--grid-gap);
+    }
+
+    /* A single column */
+    .col {
+      display: grid;
+      grid-auto-rows: minmax(0, auto);
+      align-content: start;
+      gap: 6px;
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 14px 14px 16px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    /* A single row: number + character */
+    .row {
+      display: grid;
+      grid-template-columns: 72px 1fr; /* keeps vertical alignment across rows */
+      align-items: baseline;
+      font-variant-numeric: tabular-nums; /* aligned digits */
+      font-size: var(--font-size);
+      line-height: 1.35;
+    }
+
+    .num {
+      color: var(--muted);
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .ch {
+      color: var(--ink);
+      user-select: text; /* allow copying the character itself */
+      -webkit-user-select: text;
+      white-space: pre; /* so SPACE remains visible width when selected */
+    }
+
+    /* Helpful faint dividers every 8 rows for quicker reading during demos */
+    .row:nth-child(8n) {
+      border-bottom: 1px dashed rgba(255,255,255,.08);
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    @media (max-width: 920px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 540px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ASCII 0–127</h1>
+      <div class="controls">
+        <label for="base">Number base:</label>
+        <select id="base" aria-label="Number base selector">
+          <option value="10" selected>Decimal</option>
+          <option value="16">Hex (00–7F)</option>
+        </select>
+      </div>
+    </header>
+
+    <div id="grid" class="grid" role="table" aria-label="ASCII table"></div>
+
+    <footer>
+      Tip: Control codes (0–31, 127) are shown using Unicode control pictures like ␀ (NUL) and ␡ (DEL) so they’re visible and copyable for demos.
+    </footer>
+  </div>
+
+  <script>
+    // Map of control code names (0–31 and 127)
+    const CONTROL_NAMES = [
+      'NUL','SOH','STX','TRX','EOT','ENQ','ACK','BEL',
+      'BS','TAB','LF','VT','FF','CR','SO','SI',
+      'DLE','DC1','DC2','DC3','DC4','NAK','SYN','ETB',
+      'CAN','EM','SUB','ESC','FS','GS','RS','US'
+    ];
+
+    // For display, use Unicode Control Pictures U+2400..U+241F and U+2421 for DEL.
+    const controlPicture = code => {
+      if (code >= 0 && code <= 31) return String.fromCharCode(0x2400 + code); // ␀..␟
+      if (code === 32) return String.fromCharCode(0x2420); // ␠ for SPACE (visible fallback)
+      if (code === 127) return String.fromCharCode(0x2421); // ␡ DEL
+      return null;
+    };
+
+    const numberLabel = (n, base) => base === 16
+      ? '0x' + n.toString(16).toUpperCase().padStart(2, '0')
+      : n.toString(10).padStart(3, ' ');
+
+    const titleFor = n => {
+      if (n >= 0 && n <= 31) return `${n} (${CONTROL_NAMES[n]})`;
+      if (n === 32) return `${n} (SPACE)`;
+      if (n === 127) return `${n} (DEL)`;
+      return `${n} (U+${n.toString(16).toUpperCase().padStart(4,'0')})`;
+    };
+
+    function buildGrid(base = 10) {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      // Prepare 4 columns × 32 rows each
+      const columns = [[], [], [], []];
+      for (let n = 0; n < 128; n++) {
+        const colIndex = Math.floor(n / 32); // 0..3
+        columns[colIndex].push(n);
+      }
+
+      columns.forEach(colVals => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        col.setAttribute('role', 'rowgroup');
+
+        colVals.forEach(n => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.setAttribute('role', 'row');
+
+          const num = document.createElement('span');
+          num.className = 'num';
+          num.textContent = numberLabel(n, base);
+          num.setAttribute('role', 'cell');
+
+          const ch = document.createElement('span');
+          ch.className = 'ch';
+
+          const ctrl = controlPicture(n);
+          ch.textContent = ctrl ?? String.fromCharCode(n);
+          ch.title = titleFor(n);
+          ch.setAttribute('role', 'cell');
+
+          row.appendChild(num);
+          row.appendChild(ch);
+          col.appendChild(row);
+        });
+
+        grid.appendChild(col);
+      });
+    }
+
+    // Initialize
+    buildGrid(10);
+
+    // Dropdown behavior
+    document.getElementById('base').addEventListener('change', (e) => {
+      const base = Number(e.target.value);
+      buildGrid(base);
+    });
+  </script>
+</body>
+</html>
