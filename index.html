@@ -94,7 +94,7 @@
       align-items: baseline;
       font-variant-numeric: tabular-nums; /* aligned digits */
       font-size: var(--font-size);
-      line-height: 1.35;
+      line-height: 1.0;
       column-gap: 0.75ch;   /* small, font-relative space */
     }
 
@@ -126,12 +126,6 @@
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    @media (max-width: 920px) {
-      .grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 540px) {
-      .grid { grid-template-columns: 1fr; }
-    }
   </style>
 </head>
 <body>
@@ -212,9 +206,9 @@
           num.className = 'num';
           // Build the label explicitly to avoid any trimming surprises
           let label;
-          if (base === 16) label = '' + n.toString(16).toUpperCase().padStart(2, '0');
-          else if (base === 2) label = '' + toBin(n); // or change toBin(n, 8) for 8-bit
-          else label = n.toString(10).padStart(3, ' ');
+          if (base === 16) label = '\u2003' + n.toString(16).toUpperCase().padStart(2, '0');
+          else if (base === 2) label = '\u2003' + toBin(n); // or change toBin(n, 8) for 8-bit
+          else label = '\u2003' + n.toString(10).padStart(3, ' ');
           num.textContent = label;
           num.setAttribute('role', 'cell');
 
