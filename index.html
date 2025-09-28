@@ -90,17 +90,19 @@
     /* A single row: number + character */
     .row {
       display: grid;
-      grid-template-columns: 72px 1fr; /* keeps vertical alignment across rows */
+      grid-template-columns: minmax(72px, max-content) 1fr; /* expands to fit long binary labels */ /* keeps vertical alignment across rows */
       align-items: baseline;
       font-variant-numeric: tabular-nums; /* aligned digits */
       font-size: var(--font-size);
       line-height: 1.35;
+      column-gap: 0.75ch;   /* small, font-relative space */
     }
 
     .num {
       color: var(--muted);
       user-select: text;
       -webkit-user-select: text;
+      white-space: pre; /* preserve any leading spaces/zeros exactly */
     }
     .ch {
       color: var(--ink);
@@ -141,6 +143,7 @@
         <select id="base" aria-label="Number base selector">
           <option value="10" selected>Decimal</option>
           <option value="16">Hex (00–7F)</option>
+          <option value="2">Binary (8-bit)</option>
         </select>
       </div>
     </header>
@@ -169,9 +172,11 @@
       return null;
     };
 
-    const numberLabel = (n, base) => base === 16
-      ? '0x' + n.toString(16).toUpperCase().padStart(2, '0')
-      : n.toString(10).padStart(3, ' ');
+    const numberLabel = (n, base) => {
+      if (base === 16) return '' + n.toString(16).toUpperCase().padStart(2, '0');
+      if (base === 2)  return '' + n.toString(2).padStart(8, '0') + ' '; // 8-bit ASCII
+      return n.toString(10).padStart(3, ' ');
+    };
 
     const titleFor = n => {
       if (n >= 0 && n <= 31) return `${n} (${CONTROL_NAMES[n]})`;
@@ -191,6 +196,8 @@
         columns[colIndex].push(n);
       }
 
+      const toBin = (x, bits = 7) => x.toString(2).padStart(bits, '0'); // always pad
+
       columns.forEach(colVals => {
         const col = document.createElement('div');
         col.className = 'col';
@@ -203,7 +210,12 @@
 
           const num = document.createElement('span');
           num.className = 'num';
-          num.textContent = numberLabel(n, base);
+          // Build the label explicitly to avoid any trimming surprises
+          let label;
+          if (base === 16) label = '' + n.toString(16).toUpperCase().padStart(2, '0');
+          else if (base === 2) label = '' + toBin(n); // or change toBin(n, 8) for 8-bit
+          else label = n.toString(10).padStart(3, ' ');
+          num.textContent = label;
           num.setAttribute('role', 'cell');
 
           const ch = document.createElement('span');
